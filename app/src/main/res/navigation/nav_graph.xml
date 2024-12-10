@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/pipModeVideoFragment">
+
+    <fragment
+        android:id="@+id/pipModeVideoFragment"
+        android:name="com.example.pipmodewithviews.ui.PipModeVideoFragment"
+        android:label="PipModeVideoFragment" />
+</navigation>
