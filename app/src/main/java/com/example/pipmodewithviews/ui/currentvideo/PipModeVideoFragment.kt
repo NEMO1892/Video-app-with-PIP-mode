@@ -29,9 +29,9 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.example.pipmodewithviews.databinding.FragmentPipVideoBinding
 import com.example.pipmodewithviews.domain.model.Video
-import com.example.pipmodewithviews.ui.common.AutoRotateObserver
+import com.example.pipmodewithviews.ui.common.RotationObserver
 import com.example.pipmodewithviews.ui.utils.getParcelableClass
-import com.example.pipmodewithviews.ui.utils.isAutoRotateEnabled
+import com.example.pipmodewithviews.ui.utils.isRotationEnabled
 import com.example.pipmodewithviews.ui.utils.isPIPSupported
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -46,8 +46,8 @@ class PipModeVideoFragment : Fragment() {
     private var _binding: FragmentPipVideoBinding? = null
     private val binding get() = requireNotNull(_binding)
 
-    private val autoRotateObserver: AutoRotateObserver by lazy {
-        AutoRotateObserver(Handler(Looper.getMainLooper()), requireContext(), ::handleRotationChanges)
+    private val rotationObserver: RotationObserver by lazy {
+        RotationObserver(Handler(Looper.getMainLooper()), requireContext(), ::handleRotationChanges)
     }
 
     override fun onCreateView(
@@ -62,37 +62,7 @@ class PipModeVideoFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         prepareVideo()
-        handleRotationChanges(isAutoRotateEnabled())
-    }
-
-    override fun onResume() {
-        super.onResume()
-        hideSystemUI()
-        autoRotateObserver.registerObserver()
-    }
-
-    private fun prepareVideo() {
-        handlePlatingChanges()
-        binding.playerView.setPlayer(exoPlayer)
-        val uri = Uri.parse(video?.videoUrls?.first())
-        exoPlayer.apply {
-            setMediaItem(MediaItem.fromUri(uri))
-            prepare()
-            playWhenReady = true
-        }
-    }
-
-    private fun handlePlatingChanges() {
-        exoPlayer.addListener(
-            object : Player.Listener {
-                override fun onPlaybackStateChanged(playbackState: Int) {
-                    super.onPlaybackStateChanged(playbackState)
-                    if (playbackState == Player.STATE_READY) {
-                        binding.progressBar.isVisible = false
-                    }
-                }
-            }
-        )
+        handleRotationChanges(isRotationEnabled())
     }
 
     @OptIn(UnstableApi::class)
@@ -110,6 +80,49 @@ class PipModeVideoFragment : Fragment() {
                 playerView.showController()
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        hideSystemUI()
+        rotationObserver.registerObserver()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        rotationObserver.unregisterObserver()
+        if (requireActivity().isInPictureInPictureMode.not()) {
+            exoPlayer.playWhenReady = false
+        }
+    }
+
+    override fun onDestroyView() {
+        stopAndReleasePlayer()
+        super.onDestroyView()
+    }
+
+    private fun prepareVideo() {
+        handlePlayingChanges()
+        binding.playerView.setPlayer(exoPlayer)
+        val uri = Uri.parse(video?.videoUrls?.first())
+        exoPlayer.apply {
+            setMediaItem(MediaItem.fromUri(uri))
+            prepare()
+            playWhenReady = true
+        }
+    }
+
+    private fun handlePlayingChanges() {
+        exoPlayer.addListener(
+            object : Player.Listener {
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    super.onPlaybackStateChanged(playbackState)
+                    if (playbackState == Player.STATE_READY) {
+                        binding.progressBar.isVisible = false
+                    }
+                }
+            }
+        )
     }
 
     private fun geAudioFocusExoPlayer(): ExoPlayer = ExoPlayer.Builder(requireContext())
@@ -153,24 +166,17 @@ class PipModeVideoFragment : Fragment() {
             else -> Rational(PIP_MODE_HEIGHT, PIP_MODE_WIDTH)
         }
 
-    private fun handleRotationChanges(isAutoRotateEnabled: Boolean) {
-        if (isAutoRotateEnabled) {
+    private fun handleRotationChanges(isRotationEnabled: Boolean) {
+        if (isRotationEnabled) {
             requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR
         } else {
-            lockCurrentOrientation()
+            lockOrientation()
         }
     }
 
-    private fun lockCurrentOrientation() {
-        val currentOrientation = requireActivity().resources.configuration.orientation
-        when (currentOrientation) {
-
-
-            Configuration.ORIENTATION_PORTRAIT -> {
-                requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-            }
-
-            else -> Unit
+    private fun lockOrientation() {
+        if (requireActivity().resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         }
     }
 
@@ -191,19 +197,6 @@ class PipModeVideoFragment : Fragment() {
                             or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                     )
         }
-    }
-
-    override fun onPause() {
-        super.onPause()
-        autoRotateObserver.unregisterObserver()
-        if (requireActivity().isInPictureInPictureMode.not()) {
-            exoPlayer.playWhenReady = false
-        }
-    }
-
-    override fun onDestroyView() {
-        stopAndReleasePlayer()
-        super.onDestroyView()
     }
 
     private fun stopAndReleasePlayer() {

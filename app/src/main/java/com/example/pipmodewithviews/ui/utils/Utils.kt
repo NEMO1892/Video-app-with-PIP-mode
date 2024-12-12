@@ -26,7 +26,7 @@ inline fun <reified T : Parcelable> Bundle.getParcelableClass(key: String): T? =
     else -> @Suppress("DEPRECATION") getSerializable(key) as? T
 }
 
-fun Fragment.isAutoRotateEnabled(): Boolean = Settings.System.getInt(
+fun Fragment.isRotationEnabled(): Boolean = Settings.System.getInt(
     requireContext().contentResolver,
     Settings.System.ACCELEROMETER_ROTATION
 ) == 1
