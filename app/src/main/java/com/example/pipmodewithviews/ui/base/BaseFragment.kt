@@ -1,4 +1,4 @@
-package com.example.pipmodewithviews.ui
+package com.example.pipmodewithviews.ui.base
 
 import android.os.Bundle
 import android.view.LayoutInflater

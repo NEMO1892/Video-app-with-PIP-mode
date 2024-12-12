@@ -3,7 +3,7 @@ package com.example.pipmodewithviews.ui.videos.adapter
 import androidx.recyclerview.widget.RecyclerView
 import com.example.pipmodewithviews.databinding.ItemVideoBinding
 import com.example.pipmodewithviews.domain.model.Video
-import com.example.pipmodewithviews.ui.loadUrlImage
+import com.example.pipmodewithviews.ui.utils.loadUrlImage
 
 class VideoViewHolder(
     private val binding: ItemVideoBinding,

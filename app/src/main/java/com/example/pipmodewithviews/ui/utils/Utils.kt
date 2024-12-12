@@ -1,15 +1,14 @@
-package com.example.pipmodewithviews.ui
+package com.example.pipmodewithviews.ui.utils
 
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
+import android.provider.Settings
 import android.widget.ImageView
 import androidx.fragment.app.Fragment
-import androidx.navigation.fragment.NavHostFragment
 import com.bumptech.glide.Glide
-import java.io.Serializable
 
 fun Context.isPIPSupported() =
     Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && packageManager.hasSystemFeature(
@@ -23,6 +22,11 @@ fun ImageView.loadUrlImage(url: String) {
 }
 
 inline fun <reified T : Parcelable> Bundle.getParcelableClass(key: String): T? = when {
-    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> getParcelable( key, T::class.java)
+    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> getParcelable(key, T::class.java)
     else -> @Suppress("DEPRECATION") getSerializable(key) as? T
 }
+
+fun Fragment.isAutoRotateEnabled(): Boolean = Settings.System.getInt(
+    requireContext().contentResolver,
+    Settings.System.ACCELEROMETER_ROTATION
+) == 1

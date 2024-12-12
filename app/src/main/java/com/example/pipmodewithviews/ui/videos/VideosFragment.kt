@@ -13,8 +13,8 @@ import androidx.navigation.fragment.findNavController
 import com.example.pipmodewithviews.R
 import com.example.pipmodewithviews.databinding.FragmentVideosBinding
 import com.example.pipmodewithviews.domain.model.Video
-import com.example.pipmodewithviews.ui.BaseViewBindingFragment
-import com.example.pipmodewithviews.ui.PipModeVideoFragment.Companion.VIDEO_KEY
+import com.example.pipmodewithviews.ui.base.BaseViewBindingFragment
+import com.example.pipmodewithviews.ui.currentvideo.PipModeVideoFragment.Companion.VIDEO_KEY
 import com.example.pipmodewithviews.ui.videos.adapter.VideosAdapter
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest

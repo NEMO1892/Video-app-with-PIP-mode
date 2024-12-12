@@ -1,26 +1,38 @@
-package com.example.pipmodewithviews.ui
+package com.example.pipmodewithviews.ui.currentvideo
 
 import android.app.PictureInPictureParams
+import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.graphics.Rect
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Rational
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowInsets
+import android.view.WindowInsetsController
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
+import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.example.pipmodewithviews.databinding.FragmentPipVideoBinding
 import com.example.pipmodewithviews.domain.model.Video
+import com.example.pipmodewithviews.ui.base.BaseViewBindingFragment
+import com.example.pipmodewithviews.ui.common.AutoRotateObserver
+import com.example.pipmodewithviews.ui.utils.getParcelableClass
+import com.example.pipmodewithviews.ui.utils.isAutoRotateEnabled
+import com.example.pipmodewithviews.ui.utils.isPIPSupported
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -31,7 +43,9 @@ class PipModeVideoFragment : BaseViewBindingFragment<FragmentPipVideoBinding>() 
     private val exoPlayer: ExoPlayer by lazy { geAudioFocusExoPlayer() }
     private val video: Video? by lazy { arguments?.getParcelableClass(VIDEO_KEY) }
 
-    private var isInPictureInPictureMode = false
+    private val autoRotateObserver: AutoRotateObserver by lazy {
+        AutoRotateObserver(Handler(Looper.getMainLooper()), requireContext(), ::handleRotationChanges)
+    }
 
     override fun setBinding(
         inflater: LayoutInflater,
@@ -41,15 +55,37 @@ class PipModeVideoFragment : BaseViewBindingFragment<FragmentPipVideoBinding>() 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         prepareVideo()
+        handleRotationChanges(isAutoRotateEnabled())
+    }
+
+    override fun onResume() {
+        super.onResume()
+        hideSystemUI()
+        autoRotateObserver.registerObserver()
     }
 
     private fun prepareVideo() {
+        handlePlatingChanges()
         binding.playerView.setPlayer(exoPlayer)
         val uri = Uri.parse(video?.videoUrls?.first())
-        val mediaItem: MediaItem = MediaItem.fromUri(uri)
-        exoPlayer.setMediaItem(mediaItem)
-        exoPlayer.prepare()
-        exoPlayer.playWhenReady = true
+        exoPlayer.apply {
+            setMediaItem(MediaItem.fromUri(uri))
+            prepare()
+            playWhenReady = true
+        }
+    }
+
+    private fun handlePlatingChanges() {
+        exoPlayer.addListener(
+            object : Player.Listener {
+                override fun onPlaybackStateChanged(playbackState: Int) {
+                    super.onPlaybackStateChanged(playbackState)
+                    if (playbackState == Player.STATE_READY) {
+                        binding.progressBar.isVisible = false
+                    }
+                }
+            }
+        )
     }
 
     @OptIn(UnstableApi::class)
@@ -60,8 +96,6 @@ class PipModeVideoFragment : BaseViewBindingFragment<FragmentPipVideoBinding>() 
         if (lifecycle.currentState == Lifecycle.State.CREATED) {
             requireActivity().finishAndRemoveTask()
         }
-        this.isInPictureInPictureMode = isInPictureInPictureMode.not()
-
         with(binding) {
             if (isInPictureInPictureMode) {
                 playerView.hideController()
@@ -112,9 +146,52 @@ class PipModeVideoFragment : BaseViewBindingFragment<FragmentPipVideoBinding>() 
             else -> Rational(PIP_MODE_HEIGHT, PIP_MODE_WIDTH)
         }
 
-    override fun onStop() {
-        super.onStop()
-        exoPlayer.release()
+    private fun handleRotationChanges(isAutoRotateEnabled: Boolean) {
+        if (isAutoRotateEnabled) {
+            requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR
+        } else {
+            lockCurrentOrientation()
+        }
+    }
+
+    private fun lockCurrentOrientation() {
+        val currentOrientation = requireActivity().resources.configuration.orientation
+        when (currentOrientation) {
+
+
+            Configuration.ORIENTATION_PORTRAIT -> {
+                requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            }
+
+            else -> Unit
+        }
+    }
+
+    private fun hideSystemUI() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            requireActivity().window.insetsController?.apply {
+                hide(WindowInsets.Type.systemBars())
+                systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            requireActivity().window.decorView.systemUiVisibility = (
+                    View.SYSTEM_UI_FLAG_IMMERSIVE
+                            or View.SYSTEM_UI_FLAG_FULLSCREEN
+                            or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                            or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    )
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        autoRotateObserver.unregisterObserver()
+        if (requireActivity().isInPictureInPictureMode.not()) {
+            exoPlayer.playWhenReady = false
+        }
     }
 
     override fun onDestroyView() {
