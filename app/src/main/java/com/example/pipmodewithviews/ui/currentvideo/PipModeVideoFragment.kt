@@ -1,9 +1,16 @@
 package com.example.pipmodewithviews.ui.currentvideo
 
+import android.app.PendingIntent
 import android.app.PictureInPictureParams
+import android.app.RemoteAction
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.graphics.Rect
+import android.graphics.drawable.Icon
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -15,8 +22,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.WindowInsetsController
-import androidx.annotation.OptIn
+import androidx.annotation.DrawableRes
 import androidx.annotation.RequiresApi
+import androidx.annotation.StringRes
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -25,8 +34,8 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import com.example.pipmodewithviews.R
 import com.example.pipmodewithviews.databinding.FragmentPipVideoBinding
 import com.example.pipmodewithviews.domain.model.Video
 import com.example.pipmodewithviews.ui.common.RotationObserver
@@ -50,6 +59,21 @@ class PipModeVideoFragment : Fragment() {
         RotationObserver(Handler(Looper.getMainLooper()), requireContext(), ::handleRotationChanges)
     }
 
+    private val broadcastReceiver = object : BroadcastReceiver() {
+
+        @RequiresApi(Build.VERSION_CODES.O)
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent == null || intent.action != ACTION_STOPWATCH_CONTROL) {
+                return
+            }
+            when (intent.getIntExtra(EXTRA_CONTROL_TYPE, 0)) {
+                CONTROL_TYPE_PLAY -> exoPlayer.playWhenReady = true
+                CONTROL_TYPE_PAUSE -> exoPlayer.playWhenReady = false
+            }
+            updatePictureInPictureParams()
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -61,11 +85,16 @@ class PipModeVideoFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        ContextCompat.registerReceiver(
+            requireContext(),
+            broadcastReceiver,
+            IntentFilter(ACTION_STOPWATCH_CONTROL),
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
         prepareVideo()
         handleRotationChanges(isRotationEnabled())
     }
 
-    @OptIn(UnstableApi::class)
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode)
 
@@ -73,13 +102,7 @@ class PipModeVideoFragment : Fragment() {
         if (lifecycle.currentState == Lifecycle.State.CREATED) {
             requireActivity().finishAndRemoveTask()
         }
-        with(binding) {
-            if (isInPictureInPictureMode) {
-                playerView.hideController()
-            } else {
-                playerView.showController()
-            }
-        }
+        binding.playerView.useController = !isInPictureInPictureMode
     }
 
     override fun onResume() {
@@ -146,6 +169,25 @@ class PipModeVideoFragment : Fragment() {
         val visibleRect = Rect()
         playerView.getGlobalVisibleRect(visibleRect)
         val params = PictureInPictureParams.Builder()
+            .setActions(
+                listOf(
+                    if (exoPlayer.isPlaying) {
+                        createRemoteAction(
+                            R.drawable.ic_pause,
+                            R.string.pause,
+                            REQUEST_PAUSE,
+                            CONTROL_TYPE_PAUSE
+                        )
+                    } else {
+                        createRemoteAction(
+                            R.drawable.ic_play,
+                            R.string.play,
+                            REQUEST_PLAY,
+                            CONTROL_TYPE_PLAY
+                        )
+                    }
+                )
+            )
             .setAspectRatio(getRationalForCurrentOrientation())
             .setSourceRectHint(visibleRect)
 
@@ -157,12 +199,32 @@ class PipModeVideoFragment : Fragment() {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun createRemoteAction(
+        @DrawableRes iconResId: Int,
+        @StringRes titleResId: Int,
+        requestCode: Int,
+        controlType: Int,
+    ): RemoteAction {
+        return RemoteAction(
+            Icon.createWithResource(requireContext(), iconResId),
+            getString(titleResId),
+            getString(titleResId),
+            PendingIntent.getBroadcast(
+                requireContext(),
+                requestCode,
+                Intent(ACTION_STOPWATCH_CONTROL)
+                    .putExtra(EXTRA_CONTROL_TYPE, controlType),
+                PendingIntent.FLAG_IMMUTABLE,
+            ),
+        )
+    }
+
     private fun getRationalForCurrentOrientation(): Rational =
         when (requireActivity().resources.configuration.orientation) {
             Configuration.ORIENTATION_PORTRAIT -> {
                 Rational(PIP_MODE_WIDTH, PIP_MODE_HEIGHT)
             }
-
             else -> Rational(PIP_MODE_HEIGHT, PIP_MODE_WIDTH)
         }
 
@@ -205,6 +267,13 @@ class PipModeVideoFragment : Fragment() {
     }
 
     companion object {
+
+        private const val ACTION_STOPWATCH_CONTROL = "stopwatch_control"
+        private const val EXTRA_CONTROL_TYPE = "control_type"
+        private const val CONTROL_TYPE_PLAY = 1
+        private const val CONTROL_TYPE_PAUSE = 2
+        private const val REQUEST_PLAY = 3
+        private const val REQUEST_PAUSE = 4
 
         private const val PIP_MODE_HEIGHT = 16
         private const val PIP_MODE_WIDTH = 9
