@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.os.bundleOf
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -13,7 +14,6 @@ import androidx.navigation.fragment.findNavController
 import com.example.pipmodewithviews.R
 import com.example.pipmodewithviews.databinding.FragmentVideosBinding
 import com.example.pipmodewithviews.domain.model.Video
-import com.example.pipmodewithviews.ui.base.BaseViewBindingFragment
 import com.example.pipmodewithviews.ui.currentvideo.PipModeVideoFragment.Companion.VIDEO_KEY
 import com.example.pipmodewithviews.ui.videos.adapter.VideosAdapter
 import dagger.hilt.android.AndroidEntryPoint
@@ -21,7 +21,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
-class VideosFragment : BaseViewBindingFragment<FragmentVideosBinding>() {
+class VideosFragment : Fragment() {
 
     private val viewModel by viewModels<VideosViewModel>()
 
@@ -29,10 +29,17 @@ class VideosFragment : BaseViewBindingFragment<FragmentVideosBinding>() {
         VideosAdapter(::handleOnVideoClicked)
     }
 
-    override fun setBinding(
+    private var _binding: FragmentVideosBinding? = null
+    private val binding get() = requireNotNull(_binding)
+
+    override fun onCreateView(
         inflater: LayoutInflater,
-        container: ViewGroup?
-    ): FragmentVideosBinding = FragmentVideosBinding.inflate(inflater, container, false)
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentVideosBinding.inflate(inflater, container, false)
+        return binding.root
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)

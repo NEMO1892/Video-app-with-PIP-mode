@@ -18,6 +18,7 @@ import android.view.WindowInsetsController
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.core.view.isVisible
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.media3.common.AudioAttributes
@@ -28,7 +29,6 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.example.pipmodewithviews.databinding.FragmentPipVideoBinding
 import com.example.pipmodewithviews.domain.model.Video
-import com.example.pipmodewithviews.ui.base.BaseViewBindingFragment
 import com.example.pipmodewithviews.ui.common.AutoRotateObserver
 import com.example.pipmodewithviews.ui.utils.getParcelableClass
 import com.example.pipmodewithviews.ui.utils.isAutoRotateEnabled
@@ -36,21 +36,28 @@ import com.example.pipmodewithviews.ui.utils.isPIPSupported
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class PipModeVideoFragment : BaseViewBindingFragment<FragmentPipVideoBinding>() {
+class PipModeVideoFragment : Fragment() {
 
     private val viewModel by viewModels<PipModeVideoViewModel>()
 
     private val exoPlayer: ExoPlayer by lazy { geAudioFocusExoPlayer() }
     private val video: Video? by lazy { arguments?.getParcelableClass(VIDEO_KEY) }
 
+    private var _binding: FragmentPipVideoBinding? = null
+    private val binding get() = requireNotNull(_binding)
+
     private val autoRotateObserver: AutoRotateObserver by lazy {
         AutoRotateObserver(Handler(Looper.getMainLooper()), requireContext(), ::handleRotationChanges)
     }
 
-    override fun setBinding(
+    override fun onCreateView(
         inflater: LayoutInflater,
-        container: ViewGroup?
-    ): FragmentPipVideoBinding = FragmentPipVideoBinding.inflate(inflater, container, false)
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentPipVideoBinding.inflate(inflater, container, false)
+        return binding.root
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
