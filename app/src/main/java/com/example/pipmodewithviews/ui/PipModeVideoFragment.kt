@@ -20,6 +20,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.example.pipmodewithviews.databinding.FragmentPipVideoBinding
+import com.example.pipmodewithviews.domain.model.Video
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -27,30 +28,28 @@ class PipModeVideoFragment : BaseViewBindingFragment<FragmentPipVideoBinding>() 
 
     private val viewModel by viewModels<PipModeVideoViewModel>()
 
-    private val player: ExoPlayer by lazy { geAudioFocusExoPlayer() }
+    private val exoPlayer: ExoPlayer by lazy { geAudioFocusExoPlayer() }
+    private val video: Video? by lazy { arguments?.getParcelableClass(VIDEO_KEY) }
 
     private var isInPictureInPictureMode = false
 
     override fun setBinding(
         inflater: LayoutInflater,
         container: ViewGroup?
-    ): FragmentPipVideoBinding {
-        return FragmentPipVideoBinding.inflate(inflater, container, false)
-    }
+    ): FragmentPipVideoBinding = FragmentPipVideoBinding.inflate(inflater, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        prepareVideo()
+    }
 
-        binding.run {
-            playerView.setPlayer(player)
-            val videoUrl =
-                "https://media.geeksforgeeks.org/wp-content/uploads/20201217163353/Screenrecorder-2020-12-17-16-32-03-350.mp4"
-            val uri = Uri.parse(videoUrl)
-            val mediaItem: MediaItem = MediaItem.fromUri(uri)
-            player.setMediaItem(mediaItem)
-            player.prepare()
-            player.playWhenReady = true
-        }
+    private fun prepareVideo() {
+        binding.playerView.setPlayer(exoPlayer)
+        val uri = Uri.parse(video?.videoUrls?.first())
+        val mediaItem: MediaItem = MediaItem.fromUri(uri)
+        exoPlayer.setMediaItem(mediaItem)
+        exoPlayer.prepare()
+        exoPlayer.playWhenReady = true
     }
 
     @OptIn(UnstableApi::class)
@@ -82,11 +81,10 @@ class PipModeVideoFragment : BaseViewBindingFragment<FragmentPipVideoBinding>() 
         )
         .build()
 
-    fun activatePIPIfNeeded(): Boolean = if (requireContext().isPIPSupported()) {
-        requireActivity().enterPictureInPictureMode(updatePictureInPictureParams())
-        true
-    } else {
-        false
+    fun activatePipMode() {
+        if (requireContext().isPIPSupported()) {
+            requireActivity().enterPictureInPictureMode(updatePictureInPictureParams())
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -116,16 +114,24 @@ class PipModeVideoFragment : BaseViewBindingFragment<FragmentPipVideoBinding>() 
 
     override fun onStop() {
         super.onStop()
-        player.release()
+        exoPlayer.release()
+    }
+
+    override fun onDestroyView() {
+        stopAndReleasePlayer()
+        super.onDestroyView()
     }
 
     private fun stopAndReleasePlayer() {
-
+        exoPlayer.playWhenReady = false
+        exoPlayer.release()
     }
 
-    private companion object {
+    companion object {
 
-        const val PIP_MODE_HEIGHT = 16
-        const val PIP_MODE_WIDTH = 9
+        private const val PIP_MODE_HEIGHT = 16
+        private const val PIP_MODE_WIDTH = 9
+
+        const val VIDEO_KEY = "VideoKey"
     }
 }

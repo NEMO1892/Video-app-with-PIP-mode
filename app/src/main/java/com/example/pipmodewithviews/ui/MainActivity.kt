@@ -16,14 +16,6 @@ class MainActivity : AppCompatActivity() {
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
         val navHostFragment = supportFragmentManager.findFragmentById(R.id.nav_host_fragment)
-        (navHostFragment!!.childFragmentManager.fragments[0] as? PipModeVideoFragment)?.activatePIPIfNeeded()
+        (navHostFragment!!.childFragmentManager.fragments[0] as? PipModeVideoFragment)?.activatePipMode()
     }
-
-//    override fun onNewIntent(intent: Intent?) {
-//        super.onNewIntent(intent)
-//        intent?.let {
-//            setIntent(it)
-//            (supportFragmentManager.fragments.first() as? FullScreenVideoChannelFragment)?.handleNewIntent(it)
-//        }
-//    }
 }

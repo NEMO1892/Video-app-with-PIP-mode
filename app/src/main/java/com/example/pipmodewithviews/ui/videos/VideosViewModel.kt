@@ -29,6 +29,7 @@ class VideosViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             getVideosUseCase()
                 .catch {
+                    val s = ""
                     // TODO: make error state
                 }
                 .collect { videos -> _videos.value = videos }
