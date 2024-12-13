@@ -66,6 +66,10 @@ class PipModeVideoFragment : Fragment() {
             when (intent.getIntExtra(EXTRA_CONTROL_TYPE, 0)) {
                 CONTROL_TYPE_PLAY -> exoPlayer.playWhenReady = true
                 CONTROL_TYPE_PAUSE -> exoPlayer.playWhenReady = false
+                CONTROL_TYPE_RETRY -> {
+                    exoPlayer.seekTo(0)
+                    exoPlayer.playWhenReady = true
+                }
             }
             updatePictureInPictureParams()
         }
@@ -141,10 +145,15 @@ class PipModeVideoFragment : Fragment() {
     private fun handlePlayingChanges() {
         exoPlayer.addListener(
             object : Player.Listener {
+
+                @RequiresApi(Build.VERSION_CODES.O)
                 override fun onPlaybackStateChanged(playbackState: Int) {
                     super.onPlaybackStateChanged(playbackState)
-                    if (playbackState == Player.STATE_READY) {
-                        binding.progressBar.isVisible = false
+                    when(playbackState) {
+                        Player.STATE_READY -> { binding.progressBar.isVisible = false }
+                        Player.STATE_ENDED -> { updatePictureInPictureParams(true) }
+                        Player.STATE_BUFFERING -> Unit
+                        Player.STATE_IDLE -> Unit
                     }
                 }
             }
@@ -168,21 +177,28 @@ class PipModeVideoFragment : Fragment() {
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun updatePictureInPictureParams(): PictureInPictureParams = with(binding) {
+    private fun updatePictureInPictureParams(isVideoEnded: Boolean = false): PictureInPictureParams = with(binding) {
         val visibleRect = Rect()
         playerView.getGlobalVisibleRect(visibleRect)
         val params = PictureInPictureParams.Builder()
             .setActions(
                 listOf(
-                    if (exoPlayer.isPlaying) {
-                        createRemoteAction(
+                    when {
+                        isVideoEnded -> createRemoteAction(
+                            R.drawable.ic_retry,
+                            R.string.retry,
+                            REQUEST_RETRY,
+                            CONTROL_TYPE_RETRY
+                        )
+
+                        exoPlayer.playWhenReady -> createRemoteAction(
                             R.drawable.ic_pause,
                             R.string.pause,
                             REQUEST_PAUSE,
                             CONTROL_TYPE_PAUSE
                         )
-                    } else {
-                        createRemoteAction(
+
+                        else -> createRemoteAction(
                             R.drawable.ic_play,
                             R.string.play,
                             REQUEST_PLAY,
@@ -275,8 +291,10 @@ class PipModeVideoFragment : Fragment() {
         private const val EXTRA_CONTROL_TYPE = "control_type"
         private const val CONTROL_TYPE_PLAY = 1
         private const val CONTROL_TYPE_PAUSE = 2
-        private const val REQUEST_PLAY = 3
-        private const val REQUEST_PAUSE = 4
+        private const val CONTROL_TYPE_RETRY = 3
+        private const val REQUEST_PLAY = 4
+        private const val REQUEST_PAUSE = 5
+        private const val REQUEST_RETRY = 6
 
         private const val PIP_MODE_HEIGHT = 16
         private const val PIP_MODE_WIDTH = 9
