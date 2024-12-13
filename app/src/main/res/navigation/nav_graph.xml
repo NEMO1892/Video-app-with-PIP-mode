@@ -4,19 +4,10 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
     app:startDestination="@id/videosFragment">
-
-    <fragment
-        android:id="@+id/pipModeVideoFragment"
-        android:name="com.example.pipmodewithviews.ui.currentvideo.PipModeVideoFragment"
-        android:label="PipModeVideoFragment"
-        tools:layout="@layout/fragment_pip_video" />
     <fragment
         android:id="@+id/videosFragment"
         android:name="com.example.pipmodewithviews.ui.videos.VideosFragment"
         android:label="VideosFragment"
         tools:layout="@layout/fragment_videos">
-        <action
-            android:id="@+id/action_videosFragment_to_pipModeVideoFragment"
-            app:destination="@id/pipModeVideoFragment" />
     </fragment>
 </navigation>

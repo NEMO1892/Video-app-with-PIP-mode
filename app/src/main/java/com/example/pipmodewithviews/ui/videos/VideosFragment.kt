@@ -1,19 +1,19 @@
 package com.example.pipmodewithviews.ui.videos
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.os.bundleOf
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.navigation.fragment.findNavController
-import com.example.pipmodewithviews.R
 import com.example.pipmodewithviews.databinding.FragmentVideosBinding
 import com.example.pipmodewithviews.domain.model.Video
+import com.example.pipmodewithviews.ui.currentvideo.PipModeVideoActivity
 import com.example.pipmodewithviews.ui.currentvideo.PipModeVideoFragment.Companion.VIDEO_KEY
 import com.example.pipmodewithviews.ui.videos.adapter.VideosAdapter
 import dagger.hilt.android.AndroidEntryPoint
@@ -62,9 +62,9 @@ class VideosFragment : Fragment() {
     }
 
     private fun handleOnVideoClicked(video: Video) {
-        findNavController().navigate(
-            resId = R.id.action_videosFragment_to_pipModeVideoFragment,
-            args = bundleOf(VIDEO_KEY to video)
-        )
+        val intent = Intent(requireContext(), PipModeVideoActivity::class.java).apply {
+            putExtra(VIDEO_KEY, video)
+        }
+        ContextCompat.startActivity(requireContext(), intent, null)
     }
 }

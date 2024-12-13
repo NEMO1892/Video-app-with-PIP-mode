@@ -25,10 +25,10 @@ import android.view.WindowInsetsController
 import androidx.annotation.DrawableRes
 import androidx.annotation.RequiresApi
 import androidx.annotation.StringRes
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -39,7 +39,6 @@ import com.example.pipmodewithviews.R
 import com.example.pipmodewithviews.databinding.FragmentPipVideoBinding
 import com.example.pipmodewithviews.domain.model.Video
 import com.example.pipmodewithviews.ui.common.RotationObserver
-import com.example.pipmodewithviews.ui.utils.getParcelableClass
 import com.example.pipmodewithviews.ui.utils.isRotationEnabled
 import com.example.pipmodewithviews.ui.utils.isPIPSupported
 import dagger.hilt.android.AndroidEntryPoint
@@ -47,10 +46,8 @@ import dagger.hilt.android.AndroidEntryPoint
 @AndroidEntryPoint
 class PipModeVideoFragment : Fragment() {
 
-    private val viewModel by viewModels<PipModeVideoViewModel>()
-
     private val exoPlayer: ExoPlayer by lazy { geAudioFocusExoPlayer() }
-    private val video: Video? by lazy { arguments?.getParcelableClass(VIDEO_KEY) }
+    private val video: Video? by lazy { requireActivity().intent.getParcelableExtra((VIDEO_KEY)) }
 
     private var _binding: FragmentPipVideoBinding? = null
     private val binding get() = requireNotNull(_binding)
@@ -85,14 +82,19 @@ class PipModeVideoFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        ContextCompat.registerReceiver(
-            requireContext(),
-            broadcastReceiver,
-            IntentFilter(ACTION_STOPWATCH_CONTROL),
-            ContextCompat.RECEIVER_NOT_EXPORTED
-        )
         prepareVideo()
         handleRotationChanges(isRotationEnabled())
+        registerBroadcastReceiver()
+    }
+
+    private fun registerBroadcastReceiver() {
+        ActivityCompat.registerReceiver(
+            requireActivity(),
+            broadcastReceiver,
+            IntentFilter(ACTION_STOPWATCH_CONTROL),
+            // Important thing. If you register receiver in Fragment choose this flag
+            ContextCompat.RECEIVER_EXPORTED
+        )
     }
 
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean) {
@@ -121,6 +123,7 @@ class PipModeVideoFragment : Fragment() {
 
     override fun onDestroyView() {
         stopAndReleasePlayer()
+        requireActivity().unregisterReceiver(broadcastReceiver)
         super.onDestroyView()
     }
 
@@ -215,7 +218,7 @@ class PipModeVideoFragment : Fragment() {
                 requestCode,
                 Intent(ACTION_STOPWATCH_CONTROL)
                     .putExtra(EXTRA_CONTROL_TYPE, controlType),
-                PendingIntent.FLAG_IMMUTABLE,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             ),
         )
     }
@@ -268,7 +271,7 @@ class PipModeVideoFragment : Fragment() {
 
     companion object {
 
-        private const val ACTION_STOPWATCH_CONTROL = "stopwatch_control"
+        private const val ACTION_STOPWATCH_CONTROL = "com.example.pipmodewithviews.ui.currentvideo.pip.mode.video.stopwatch.control"
         private const val EXTRA_CONTROL_TYPE = "control_type"
         private const val CONTROL_TYPE_PLAY = 1
         private const val CONTROL_TYPE_PAUSE = 2
