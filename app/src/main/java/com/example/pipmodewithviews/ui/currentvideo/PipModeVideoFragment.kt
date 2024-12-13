@@ -41,6 +41,7 @@ import com.example.pipmodewithviews.domain.model.Video
 import com.example.pipmodewithviews.ui.common.RotationObserver
 import com.example.pipmodewithviews.ui.utils.isRotationEnabled
 import com.example.pipmodewithviews.ui.utils.isPIPSupported
+import com.example.pipmodewithviews.ui.videos.VideosFragment.Companion.VIDEO_KEY
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -56,6 +57,7 @@ class PipModeVideoFragment : Fragment() {
         RotationObserver(Handler(Looper.getMainLooper()), requireContext(), ::handleRotationChanges)
     }
 
+    // добавь лоадинг для
     private val broadcastReceiver = object : BroadcastReceiver() {
 
         @RequiresApi(Build.VERSION_CODES.O)
@@ -69,6 +71,12 @@ class PipModeVideoFragment : Fragment() {
                 CONTROL_TYPE_RETRY -> {
                     exoPlayer.seekTo(0)
                     exoPlayer.playWhenReady = true
+                }
+                CONTROL_SEEK_BACK -> {
+                    exoPlayer.seekTo(exoPlayer.currentPosition - 10000)
+                }
+                CONTROL_SEEK_FORWARD -> {
+                    exoPlayer.seekTo(exoPlayer.currentPosition + 10000)
                 }
             }
             updatePictureInPictureParams()
@@ -143,21 +151,19 @@ class PipModeVideoFragment : Fragment() {
     }
 
     private fun handlePlayingChanges() {
-        exoPlayer.addListener(
-            object : Player.Listener {
+        exoPlayer.addListener(object : Player.Listener {
 
-                @RequiresApi(Build.VERSION_CODES.O)
-                override fun onPlaybackStateChanged(playbackState: Int) {
-                    super.onPlaybackStateChanged(playbackState)
-                    when(playbackState) {
-                        Player.STATE_READY -> { binding.progressBar.isVisible = false }
-                        Player.STATE_ENDED -> { updatePictureInPictureParams(true) }
-                        Player.STATE_BUFFERING -> Unit
-                        Player.STATE_IDLE -> Unit
-                    }
+            @RequiresApi(Build.VERSION_CODES.O)
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                super.onPlaybackStateChanged(playbackState)
+                when (playbackState) {
+                    Player.STATE_READY -> binding.progressBar.isVisible = false
+                    Player.STATE_ENDED -> updatePictureInPictureParams(true)
+                    Player.STATE_BUFFERING -> binding.progressBar.isVisible = true
+                    Player.STATE_IDLE -> Unit
                 }
             }
-        )
+        })
     }
 
     private fun geAudioFocusExoPlayer(): ExoPlayer = ExoPlayer.Builder(requireContext())
@@ -183,6 +189,12 @@ class PipModeVideoFragment : Fragment() {
         val params = PictureInPictureParams.Builder()
             .setActions(
                 listOf(
+                    createRemoteAction(
+                        R.drawable.ic_seek_back,
+                        R.string.seek_back,
+                        REQUEST_SEEK_BACK,
+                        CONTROL_SEEK_BACK
+                    ),
                     when {
                         isVideoEnded -> createRemoteAction(
                             R.drawable.ic_retry,
@@ -204,7 +216,13 @@ class PipModeVideoFragment : Fragment() {
                             REQUEST_PLAY,
                             CONTROL_TYPE_PLAY
                         )
-                    }
+                    },
+                    createRemoteAction(
+                        R.drawable.ic_seek_forward,
+                        R.string.seek_forward,
+                        REQUEST_SEEK_FORWARD,
+                        CONTROL_SEEK_FORWARD
+                    )
                 )
             )
             .setAspectRatio(getRationalForCurrentOrientation())
@@ -285,20 +303,22 @@ class PipModeVideoFragment : Fragment() {
         exoPlayer.release()
     }
 
-    companion object {
+    private companion object {
 
-        private const val ACTION_STOPWATCH_CONTROL = "com.example.pipmodewithviews.ui.currentvideo.pip.mode.video.stopwatch.control"
-        private const val EXTRA_CONTROL_TYPE = "control_type"
-        private const val CONTROL_TYPE_PLAY = 1
-        private const val CONTROL_TYPE_PAUSE = 2
-        private const val CONTROL_TYPE_RETRY = 3
-        private const val REQUEST_PLAY = 4
-        private const val REQUEST_PAUSE = 5
-        private const val REQUEST_RETRY = 6
+        const val ACTION_STOPWATCH_CONTROL = "com.example.pipmodewithviews.ui.currentvideo.pip.mode.video.stopwatch.control"
+        const val EXTRA_CONTROL_TYPE = "control_type"
+        const val CONTROL_TYPE_PLAY = 1
+        const val CONTROL_TYPE_PAUSE = 2
+        const val CONTROL_TYPE_RETRY = 3
+        const val CONTROL_SEEK_FORWARD = 4
+        const val CONTROL_SEEK_BACK = 5
+        const val REQUEST_PLAY = 6
+        const val REQUEST_PAUSE = 7
+        const val REQUEST_RETRY = 8
+        const val REQUEST_SEEK_FORWARD = 9
+        const val REQUEST_SEEK_BACK = 10
 
-        private const val PIP_MODE_HEIGHT = 16
-        private const val PIP_MODE_WIDTH = 9
-
-        const val VIDEO_KEY = "VideoKey"
+        const val PIP_MODE_HEIGHT = 16
+        const val PIP_MODE_WIDTH = 9
     }
 }

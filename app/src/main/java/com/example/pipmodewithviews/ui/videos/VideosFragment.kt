@@ -14,7 +14,6 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.example.pipmodewithviews.databinding.FragmentVideosBinding
 import com.example.pipmodewithviews.domain.model.Video
 import com.example.pipmodewithviews.ui.currentvideo.PipModeVideoActivity
-import com.example.pipmodewithviews.ui.currentvideo.PipModeVideoFragment.Companion.VIDEO_KEY
 import com.example.pipmodewithviews.ui.videos.adapter.VideosAdapter
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
@@ -66,5 +65,10 @@ class VideosFragment : Fragment() {
             putExtra(VIDEO_KEY, video)
         }
         ContextCompat.startActivity(requireContext(), intent, null)
+    }
+
+    companion object {
+
+        const val VIDEO_KEY = "VideoKey"
     }
 }
