@@ -48,7 +48,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class PipModeVideoFragment : Fragment() {
 
     private val exoPlayer: ExoPlayer by lazy { geAudioFocusExoPlayer() }
-    private val video: Video? by lazy { requireActivity().intent.getParcelableExtra((VIDEO_KEY)) }
+    private var video: Video? = null
 
     private var _binding: FragmentPipVideoBinding? = null
     private val binding get() = requireNotNull(_binding)
@@ -57,7 +57,6 @@ class PipModeVideoFragment : Fragment() {
         RotationObserver(Handler(Looper.getMainLooper()), requireContext(), ::handleRotationChanges)
     }
 
-    // добавь лоадинг для
     private val broadcastReceiver = object : BroadcastReceiver() {
 
         @RequiresApi(Build.VERSION_CODES.O)
@@ -72,12 +71,8 @@ class PipModeVideoFragment : Fragment() {
                     exoPlayer.seekTo(0)
                     exoPlayer.playWhenReady = true
                 }
-                CONTROL_SEEK_BACK -> {
-                    exoPlayer.seekTo(exoPlayer.currentPosition - 10000)
-                }
-                CONTROL_SEEK_FORWARD -> {
-                    exoPlayer.seekTo(exoPlayer.currentPosition + 10000)
-                }
+                CONTROL_SEEK_BACK -> exoPlayer.seekTo(exoPlayer.currentPosition - 10000)
+                CONTROL_SEEK_FORWARD -> exoPlayer.seekTo(exoPlayer.currentPosition + 10000)
             }
             updatePictureInPictureParams()
         }
@@ -94,6 +89,7 @@ class PipModeVideoFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        video = requireActivity().intent.getParcelableExtra((VIDEO_KEY))
         prepareVideo()
         handleRotationChanges(isRotationEnabled())
         registerBroadcastReceiver()
@@ -299,9 +295,21 @@ class PipModeVideoFragment : Fragment() {
     }
 
     private fun stopAndReleasePlayer() {
-        exoPlayer.playWhenReady = false
-        exoPlayer.release()
+        exoPlayer.apply {
+            playWhenReady = false
+            release()
+        }
     }
+
+    fun handleNewIntent(intent: Intent) {
+        val newVideo = intent.getParcelableExtra<Video>((VIDEO_KEY))
+        if (shouldLoadNewVideo(newVideo)) {
+            video = newVideo
+            prepareVideo()
+        }
+    }
+
+    private fun shouldLoadNewVideo(newVideo: Video?) = newVideo?.videoUrls?.first() != video?.videoUrls?.first()
 
     private companion object {
 

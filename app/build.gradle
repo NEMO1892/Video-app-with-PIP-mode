@@ -70,5 +70,5 @@ dependencies {
     implementation(libs.exoplayer)
 
     implementation libs.glide.v4151
-    annotationProcessor libs.compiler
+    kapt libs.compiler
 }

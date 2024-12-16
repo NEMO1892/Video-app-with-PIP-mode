@@ -8,7 +8,7 @@ import android.os.Parcelable
 import android.provider.Settings
 import android.widget.ImageView
 import androidx.fragment.app.Fragment
-import com.bumptech.glide.Glide
+import com.example.pipmodewithviews.ui.GlideApp
 
 fun Context.isPIPSupported() =
     Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && packageManager.hasSystemFeature(
@@ -16,7 +16,7 @@ fun Context.isPIPSupported() =
     )
 
 fun ImageView.loadUrlImage(url: String) {
-    Glide.with(context)
+    GlideApp.with(context)
         .load(url)
         .into(this)
 }
