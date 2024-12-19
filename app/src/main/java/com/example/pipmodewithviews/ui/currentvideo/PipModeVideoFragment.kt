@@ -183,44 +183,7 @@ class PipModeVideoFragment : Fragment() {
         val visibleRect = Rect()
         playerView.getGlobalVisibleRect(visibleRect)
         val params = PictureInPictureParams.Builder()
-            .setActions(
-                listOf(
-                    createRemoteAction(
-                        R.drawable.ic_seek_back,
-                        R.string.seek_back,
-                        REQUEST_SEEK_BACK,
-                        CONTROL_SEEK_BACK
-                    ),
-                    when {
-                        isVideoEnded -> createRemoteAction(
-                            R.drawable.ic_retry,
-                            R.string.retry,
-                            REQUEST_RETRY,
-                            CONTROL_TYPE_RETRY
-                        )
-
-                        exoPlayer.playWhenReady -> createRemoteAction(
-                            R.drawable.ic_pause,
-                            R.string.pause,
-                            REQUEST_PAUSE,
-                            CONTROL_TYPE_PAUSE
-                        )
-
-                        else -> createRemoteAction(
-                            R.drawable.ic_play,
-                            R.string.play,
-                            REQUEST_PLAY,
-                            CONTROL_TYPE_PLAY
-                        )
-                    },
-                    createRemoteAction(
-                        R.drawable.ic_seek_forward,
-                        R.string.seek_forward,
-                        REQUEST_SEEK_FORWARD,
-                        CONTROL_SEEK_FORWARD
-                    )
-                )
-            )
+            .setActions(getRemoteActions(isVideoEnded))
             .setAspectRatio(getRationalForCurrentOrientation())
             .setSourceRectHint(visibleRect)
 
@@ -231,6 +194,43 @@ class PipModeVideoFragment : Fragment() {
             requireActivity().setPictureInPictureParams(it)
         }
     }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun getRemoteActions(isVideoEnded: Boolean) = listOf(
+        createRemoteAction(
+            R.drawable.ic_seek_back,
+            R.string.seek_back,
+            REQUEST_SEEK_BACK,
+            CONTROL_SEEK_BACK
+        ),
+        when {
+            isVideoEnded -> createRemoteAction(
+                R.drawable.ic_retry,
+                R.string.retry,
+                REQUEST_RETRY,
+                CONTROL_TYPE_RETRY
+            )
+            exoPlayer.playWhenReady -> createRemoteAction(
+                R.drawable.ic_pause,
+                R.string.pause,
+                REQUEST_PAUSE,
+                CONTROL_TYPE_PAUSE
+            )
+
+            else -> createRemoteAction(
+                R.drawable.ic_play,
+                R.string.play,
+                REQUEST_PLAY,
+                CONTROL_TYPE_PLAY
+            )
+        },
+        createRemoteAction(
+            R.drawable.ic_seek_forward,
+            R.string.seek_forward,
+            REQUEST_SEEK_FORWARD,
+            CONTROL_SEEK_FORWARD
+        )
+    )
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun createRemoteAction(
